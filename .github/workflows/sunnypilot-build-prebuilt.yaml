@@ -116,6 +116,7 @@ jobs:
       commit_sha: ${{ github.sha }}
     if: ${{
       (always() && !cancelled() && !failure()) &&
+      vars.ENABLE_TICI_PREBUILT == 'true' &&
       needs.prepare_strategy.result == 'success' &&
       (needs.validate_tests.result == 'success' || needs.validate_tests.result == 'skipped') &&
       (!contains(github.event_name, 'pull_request') ||
