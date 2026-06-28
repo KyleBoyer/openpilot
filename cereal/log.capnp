@@ -606,6 +606,9 @@ struct PandaState @0xa7649e2575e4591e {
   safetyParam @27 :UInt16;
   alternativeExperience @23 :Int16;
   safetyRxChecksInvalid @32 :Bool;
+  controlsAllowedLateral @38 :Bool;
+  controlsAllowedLongitudinal @39 :Bool;
+  soundOutputLevel @37 :UInt16;
 
   voltage @0 :UInt32;
   current @1 :UInt32;

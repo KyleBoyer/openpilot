@@ -10,8 +10,8 @@ AudibleAlert = car.CarControl.HUDControl.AudibleAlert
 
 class TestSoundd:
   def test_check_selfdrive_timeout_alert(self):
-    sm = SubMaster(['selfdriveState'])
-    pm = PubMaster(['selfdriveState'])
+    sm = SubMaster(['selfdriveState', 'selfdriveStateSP'])
+    pm = PubMaster(['selfdriveState', 'selfdriveStateSP'])
 
     for _ in range(100):
       cs = messaging.new_message('selfdriveState')
@@ -31,5 +31,29 @@ class TestSoundd:
 
     assert check_selfdrive_timeout_alert(sm)
 
-  # TODO: add test with micd for checking that soundd actually outputs sounds
+  def test_check_selfdrive_timeout_alert_mads_lateral_only(self):
+    sm = SubMaster(['selfdriveState', 'selfdriveStateSP'])
+    pm = PubMaster(['selfdriveState', 'selfdriveStateSP'])
 
+    for _ in range(100):
+      cs = messaging.new_message('selfdriveState')
+      cs.selfdriveState.enabled = False
+
+      ss_sp = messaging.new_message('selfdriveStateSP')
+      ss_sp.selfdriveStateSP.mads.enabled = True
+
+      pm.send("selfdriveState", cs)
+      pm.send("selfdriveStateSP", ss_sp)
+
+      time.sleep(0.01)
+      sm.update(0)
+
+      assert not check_selfdrive_timeout_alert(sm)
+
+    for _ in range(SELFDRIVE_STATE_TIMEOUT * 110):
+      sm.update(0)
+      time.sleep(0.01)
+
+    assert check_selfdrive_timeout_alert(sm)
+
+  # TODO: add test with micd for checking that soundd actually outputs sounds

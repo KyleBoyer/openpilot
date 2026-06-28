@@ -32,6 +32,7 @@ class ModularAssistiveDrivingSystem:
     self.enabled = False
     self.active = False
     self.available = False
+    self.lateral_mismatch_counter = 0
     self.allow_always = False
     self.no_main_cruise = False
     self.selfdrive = selfdrive
@@ -100,6 +101,15 @@ class ModularAssistiveDrivingSystem:
     self.events.remove(old_event)
     self.events_sp.add(new_event)
 
+  def data_sample(self):
+    # Panda state and CAN-backed selfdrive state arrive on separate sockets,
+    # so tolerate brief disagreement before declaring a lateral mismatch.
+    if not self.active or self.selfdrive.enabled:
+      self.lateral_mismatch_counter = 0
+    elif any(not ps.controlsAllowedLateral for ps in self.selfdrive.sm['pandaStates']
+             if ps.safetyModel not in IGNORED_SAFETY_MODES):
+      self.lateral_mismatch_counter += 1
+
   def update_events(self, CS: structs.CarState):
     if not self.selfdrive.enabled and self.enabled:
       if self.events.has(EventName.doorOpen):
@@ -130,6 +140,7 @@ class ModularAssistiveDrivingSystem:
       self.events.remove(EventName.speedTooLow)
       self.events.remove(EventName.cruiseDisabled)
       self.events.remove(EventName.manualRestart)
+      self.events.remove(EventName.espActive)
 
     selfdrive_enable_events = self.events.has(EventName.pcmEnable) or self.events.has(EventName.buttonEnable)
     set_speed_btns_enable = any(be.type in SET_SPEED_BUTTONS for be in CS.buttonEvents)
@@ -181,6 +192,9 @@ class ModularAssistiveDrivingSystem:
       if self.state_machine.state == State.paused:
         self.events_sp.add(EventNameSP.silentLkasEnable)
 
+    if self.lateral_mismatch_counter >= 200:
+      self.events_sp.add(EventNameSP.controlsMismatchLateral)
+
     self.events.remove(EventName.pcmDisable)
     self.events.remove(EventName.buttonCancel)
     self.events.remove(EventName.pedalPressed)
@@ -190,6 +204,7 @@ class ModularAssistiveDrivingSystem:
     if not self.enabled_toggle:
       return
 
+    self.data_sample()
     self.update_events(CS)
 
     if not self.CP.passive and self.selfdrive.initialized:
