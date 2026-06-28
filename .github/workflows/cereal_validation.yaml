@@ -64,6 +64,8 @@ jobs:
           ref: "refs/heads/master"
       # The upstream checkout does not contain sunnypilot's local setup action.
       - name: Set up upstream environment
+        env:
+          PYTHONWARNINGS: default
         run: |
           ./tools/op.sh setup
       - name: Build openpilot
