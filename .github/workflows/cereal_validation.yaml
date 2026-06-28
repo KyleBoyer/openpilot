@@ -65,18 +65,16 @@ jobs:
       # The upstream checkout does not contain sunnypilot's local setup action.
       - name: Set up upstream environment
         run: |
-          git lfs pull
-          find . -type f -executable -not -perm 755 -exec chmod 755 {} \;
-          find . -type f -not -executable -not -perm 644 -exec chmod 644 {} \;
-          eval "$BUILD"
+          ./tools/op.sh setup
       - name: Build openpilot
-        run: ${{ env.RUN }} "scons -j$(nproc) cereal"
+        run: scons -j$(nproc) openpilot/cereal
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: cereal_validations
-          path: cereal/messaging/tests/cereal_validations
+          path: openpilot/cereal/messaging/tests/cereal_validations
       - name: 'Run the validation'
         run: |
-          chmod +x cereal/messaging/tests/cereal_validations/validate_sp_cereal_upstream.py
-          ${{ env.RUN }} "cereal/messaging/tests/cereal_validations/validate_sp_cereal_upstream.py -r -f cereal/messaging/tests/cereal_validations/schema_instances.bin"
+          chmod +x openpilot/cereal/messaging/tests/cereal_validations/validate_sp_cereal_upstream.py
+          openpilot/cereal/messaging/tests/cereal_validations/validate_sp_cereal_upstream.py \
+            -r -f openpilot/cereal/messaging/tests/cereal_validations/schema_instances.bin
