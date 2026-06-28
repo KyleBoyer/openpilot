@@ -149,8 +149,10 @@ def compare_schemas(original_instances: list[Any], read_instances: list[Any]) ->
   Returns:
       Boolean indicating whether schemas appear compatible
   """
-  if len(original_instances) != len(read_instances):
-    print("❌ Schema Compatibility Warning: Instance count mismatch")
+  # Upstream may add fields that are absent from this older fork. That is
+  # backward-compatible; only additional fork fields need closer validation.
+  if len(read_instances) > len(original_instances):
+    print("❌ Schema Compatibility Warning: Fork has more instances than upstream")
     return False
 
   compatible = True
