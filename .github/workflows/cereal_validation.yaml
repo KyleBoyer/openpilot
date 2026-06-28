@@ -62,7 +62,13 @@ jobs:
           repository: 'commaai/openpilot'
           submodules: true
           ref: "refs/heads/master"
-      - uses: ./.github/workflows/setup-with-retry
+      # The upstream checkout does not contain sunnypilot's local setup action.
+      - name: Set up upstream environment
+        run: |
+          git lfs pull
+          find . -type f -executable -not -perm 755 -exec chmod 755 {} \;
+          find . -type f -not -executable -not -perm 644 -exec chmod 644 {} \;
+          eval "$BUILD"
       - name: Build openpilot
         run: ${{ env.RUN }} "scons -j$(nproc) cereal"
       - name: Download build artifacts
