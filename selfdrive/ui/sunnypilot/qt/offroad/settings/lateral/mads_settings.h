@@ -44,9 +44,14 @@ private:
   Params params;
   bool offroad;
 
+  void refreshMinLateralControlSpeed();
+
   ParamControl *madsMainCruiseToggle;
   ParamControl *madsUnifiedEngagementModeToggle;
   ButtonParamControl *madsSteeringMode;
+  OptionControlSP *madsMinLateralControlSpeed;
+
+  const QString MADS_MIN_LATERAL_SPEED_DESC = tr("Pause lateral control below this speed so you can move the steering wheel freely at low speed or a stop without fighting steering. Lateral resumes above this speed. Set to 0 to keep lateral always available.");
 
   std::vector<int> madsSteeringModeValues = {};
 

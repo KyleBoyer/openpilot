@@ -35,13 +35,31 @@ MadsSettings::MadsSettings(QWidget *parent) : QWidget(parent) {
   });
   list->addItem(madsSteeringMode);
 
+  // Minimum lateral engagement speed
+  madsMinLateralControlSpeed = new OptionControlSP("MadsMinLateralControlSpeed", tr("Minimum Engagement Speed"),
+                                                   MADS_MIN_LATERAL_SPEED_DESC, "../assets/offroad/icon_blank.png", {0, 90}, 1);
+  QObject::connect(madsMinLateralControlSpeed, &OptionControlSP::updateLabels, this, &MadsSettings::refreshMinLateralControlSpeed);
+  list->addItem(madsMinLateralControlSpeed);
+
   QObject::connect(uiState(), &UIState::offroadTransition, this, &MadsSettings::updateToggles);
 
   main_layout->addWidget(new ScrollViewSP(list, this));
+  refreshMinLateralControlSpeed();
+}
+
+void MadsSettings::refreshMinLateralControlSpeed() {
+  const int value = std::atoi(params.get("MadsMinLateralControlSpeed").c_str());
+  if (value <= 0) {
+    madsMinLateralControlSpeed->setLabel(tr("Always"));
+  } else {
+    const QString unit = params.getBool("IsMetric") ? "km/h" : "mph";
+    madsMinLateralControlSpeed->setLabel(QString::number(value) + " " + unit);
+  }
 }
 
 void MadsSettings::showEvent(QShowEvent *event) {
   updateToggles(offroad);
+  refreshMinLateralControlSpeed();
 }
 
 void MadsSettings::updateToggles(bool _offroad) {

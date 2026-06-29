@@ -12,6 +12,7 @@ from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
 from openpilot.sunnypilot.selfdrive.controls.lib.param_store import ParamStore
 from openpilot.sunnypilot.selfdrive.controls.lib.blinker_pause_lateral import BlinkerPauseLateral
+from openpilot.sunnypilot.selfdrive.controls.lib.min_lateral_engage_speed import MinLateralEngageSpeed
 
 
 class ControlsExt:
@@ -19,6 +20,7 @@ class ControlsExt:
     self.CP = CP
     self.params = params
     self.blinker_pause_lateral = BlinkerPauseLateral()
+    self.min_lateral_engage_speed = MinLateralEngageSpeed()
     self.param_store = ParamStore(self.CP)
     self.get_params_sp()
 
@@ -32,9 +34,14 @@ class ControlsExt:
   def get_params_sp(self) -> None:
     self.param_store.update(self.params)
     self.blinker_pause_lateral.get_params()
+    self.min_lateral_engage_speed.get_params()
 
   def get_lat_active(self, sm: messaging.SubMaster) -> bool:
     if self.blinker_pause_lateral.update(sm['carState']):
+      return False
+
+    # pause lateral below the user-set minimum engagement speed (straighten the wheel at a stop)
+    if self.min_lateral_engage_speed.update(sm['carState']):
       return False
 
     ss_sp = sm['selfdriveStateSP']
