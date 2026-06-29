@@ -124,6 +124,17 @@ class CarSpecificEvents:
       events = self.create_common_events(CS, CS_prev, extra_gears=(GearShifter.sport, GearShifter.manumatic),
                                          pcm_enable=self.CP.pcmCruise, allow_button_cancel=False)
 
+    elif self.CP.brand == 'subaru':
+      events = self.create_common_events(CS, CS_prev)
+
+      # angle-LKAS Subarus clamp the steering request below the EPS fault angle (~200 deg). Warn
+      # (audible, no disengage) when the model asks for more than we can send, so the driver knows
+      # to complete the tight turn themselves.
+      if self.CP.steerControlType == structs.CarParams.SteerControlType.angle and CC.latActive:
+        from opendbc.car.subaru.carcontroller import LKAS_ANGLE_MAX_ACTIVE
+        if abs(CC.actuators.steeringAngleDeg) >= LKAS_ANGLE_MAX_ACTIVE:
+          events.add(EventName.steerSaturated)
+
     else:
       events = self.create_common_events(CS, CS_prev)
 
