@@ -51,9 +51,11 @@ private:
   ButtonParamControl *madsSteeringMode;
   OptionControlSP *madsMinLateralControlSpeed;
   ParamControl *madsReturnToCenterToggle;
+  ParamControl *madsSubaruDirectionalOverrideToggle;
 
   const QString MADS_MIN_LATERAL_SPEED_DESC = tr("Pause lateral control below this speed so you can move the steering wheel freely at low speed or a stop without fighting steering. Lateral resumes above this speed. Set to 0 to keep lateral always available.");
   const QString MADS_RETURN_TO_CENTER_DESC = tr("When steering out of a turn, briefly hand control back so the wheel returns to center naturally instead of fighting steering. Lateral resumes once the wheel is back near center.");
+  const QString MADS_SUBARU_DIRECTIONAL_OVERRIDE_DESC = tr("Subaru angle-LKAS only: only hand control back when you steer against the current turn. Pushing hard in the same direction as the turn no longer drops lateral control. Disable to hand control back for steering input in either direction.");
 
   std::vector<int> madsSteeringModeValues = {};
 

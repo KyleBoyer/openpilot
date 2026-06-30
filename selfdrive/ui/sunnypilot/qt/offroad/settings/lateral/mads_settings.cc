@@ -45,6 +45,10 @@ MadsSettings::MadsSettings(QWidget *parent) : QWidget(parent) {
   madsReturnToCenterToggle = new ParamControl("MadsReturnToCenterAssist", tr("Return-to-Center Assist"), MADS_RETURN_TO_CENTER_DESC, "");
   list->addItem(madsReturnToCenterToggle);
 
+  // Directional driver override (Subaru angle-LKAS)
+  madsSubaruDirectionalOverrideToggle = new ParamControl("MadsSubaruDirectionalOverride", tr("Directional Driver Override"), MADS_SUBARU_DIRECTIONAL_OVERRIDE_DESC, "");
+  list->addItem(madsSubaruDirectionalOverrideToggle);
+
   QObject::connect(uiState(), &UIState::offroadTransition, this, &MadsSettings::updateToggles);
 
   main_layout->addWidget(new ScrollViewSP(list, this));

@@ -24,6 +24,7 @@ class ControlsExt:
     self.min_lateral_engage_speed = MinLateralEngageSpeed()
     self.return_to_center_assist = ReturnToCenterAssist(CP)
     self.param_store = ParamStore(self.CP)
+    self.subaru_directional_steer_override = True
     self.get_params_sp()
 
     cloudlog.info("controlsd_ext is waiting for CarParamsSP")
@@ -38,6 +39,7 @@ class ControlsExt:
     self.blinker_pause_lateral.get_params()
     self.min_lateral_engage_speed.get_params()
     self.return_to_center_assist.get_params()
+    self.subaru_directional_steer_override = self.params.get_bool("MadsSubaruDirectionalOverride")
 
   def get_lat_active(self, sm: messaging.SubMaster) -> bool:
     if self.blinker_pause_lateral.update(sm['carState']):
@@ -88,6 +90,8 @@ class ControlsExt:
     CC_SP.mads = sm['selfdriveStateSP'].mads
 
     CC_SP.params = self.param_store.param_list
+
+    CC_SP.subaruDirectionalSteerOverride = self.subaru_directional_steer_override
 
     return CC_SP
 
