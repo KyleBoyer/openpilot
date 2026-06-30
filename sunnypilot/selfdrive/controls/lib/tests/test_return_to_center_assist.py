@@ -6,14 +6,22 @@ See the LICENSE.md file in the root directory for more details.
 """
 from cereal import car
 
+from opendbc.car import structs
 from openpilot.sunnypilot.selfdrive.controls.lib.return_to_center_assist import (
   ReturnToCenterAssist, ENGAGE_ANGLE, RELEASE_ANGLE, TORQUE_THRESHOLD)
+
+
+def _subaru_angle_cp():
+  CP = structs.CarParams()
+  CP.brand = "subaru"
+  CP.steerControlType = structs.CarParams.SteerControlType.angle
+  return CP
 
 
 class TestReturnToCenterAssist:
 
   def setup_method(self):
-    self.rtc = ReturnToCenterAssist()
+    self.rtc = ReturnToCenterAssist(_subaru_angle_cp())
     self.rtc.enabled = True
     self.rtc.active = False
     self.CS = car.CarState.new_message()
@@ -54,3 +62,14 @@ class TestReturnToCenterAssist:
   def test_symmetric_right_turn(self):
     # turned right (positive), driver pushing toward center (negative torque)
     assert self._update(ENGAGE_ANGLE + 10, -(TORQUE_THRESHOLD + 10)) is True
+
+  def test_unsupported_platform_never_engages(self):
+    # torque units are brand-specific, so non-Subaru / non-angle platforms must not yield
+    CP = structs.CarParams()
+    CP.brand = "toyota"
+    CP.steerControlType = structs.CarParams.SteerControlType.torque
+    rtc = ReturnToCenterAssist(CP)
+    rtc.enabled = True
+    self.CS.steeringAngleDeg = -ENGAGE_ANGLE - 10
+    self.CS.steeringTorque = TORQUE_THRESHOLD + 50
+    assert rtc.update(self.CS) is False

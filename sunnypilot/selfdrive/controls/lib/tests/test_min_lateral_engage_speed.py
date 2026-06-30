@@ -7,7 +7,7 @@ See the LICENSE.md file in the root directory for more details.
 from cereal import car
 
 from openpilot.common.constants import CV
-from openpilot.sunnypilot.selfdrive.controls.lib.min_lateral_engage_speed import MinLateralEngageSpeed
+from openpilot.sunnypilot.selfdrive.controls.lib.min_lateral_engage_speed import MinLateralEngageSpeed, SPEED_HYSTERESIS
 
 
 class TestMinLateralEngageSpeed:
@@ -46,5 +46,17 @@ class TestMinLateralEngageSpeed:
     self.min_lateral_engage_speed.min_speed = 10  # km/h
     self.CS.vEgo = (10 * CV.KPH_TO_MS) - 0.1
     assert self.min_lateral_engage_speed.update(self.CS) is True
-    self.CS.vEgo = (10 * CV.KPH_TO_MS) + 0.1
+    self.CS.vEgo = (10 * CV.KPH_TO_MS) + SPEED_HYSTERESIS + 0.1
+    assert self.min_lateral_engage_speed.update(self.CS) is False
+
+  def test_hysteresis_prevents_toggling(self):
+    min_speed_ms = 5 * CV.MPH_TO_MS
+    # drop below the threshold -> pause
+    self.CS.vEgo = min_speed_ms - 0.1
+    assert self.min_lateral_engage_speed.update(self.CS) is True
+    # just above the threshold but within the resume margin -> stay paused (no toggling)
+    self.CS.vEgo = min_speed_ms + (SPEED_HYSTERESIS / 2)
+    assert self.min_lateral_engage_speed.update(self.CS) is True
+    # clear the resume margin -> resume
+    self.CS.vEgo = min_speed_ms + SPEED_HYSTERESIS + 0.1
     assert self.min_lateral_engage_speed.update(self.CS) is False

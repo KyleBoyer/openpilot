@@ -9,6 +9,9 @@ from cereal import car
 from openpilot.common.constants import CV
 from openpilot.common.params import Params
 
+# resume margin so speed noise near the threshold doesn't toggle lateral at 100 Hz
+SPEED_HYSTERESIS = 0.5  # m/s (~1.1 mph)
+
 
 class MinLateralEngageSpeed:
   """Pauses lateral control below a user-set speed so the driver can move the steering wheel freely
@@ -23,6 +26,7 @@ class MinLateralEngageSpeed:
 
     self.is_metric = self.params.get_bool("IsMetric")
     self.min_speed = 0
+    self.paused = False
 
   def get_params(self) -> None:
     self.is_metric = self.params.get_bool("IsMetric")
@@ -30,9 +34,17 @@ class MinLateralEngageSpeed:
 
   def update(self, CS: car.CarState) -> bool:
     if self.min_speed <= 0:
+      self.paused = False
       return False
 
     speed_factor = CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS
     min_speed_ms = self.min_speed * speed_factor
 
-    return bool(CS.vEgo < min_speed_ms)
+    # pause below the threshold; only resume once above it by the hysteresis margin
+    if self.paused:
+      if CS.vEgo > min_speed_ms + SPEED_HYSTERESIS:
+        self.paused = False
+    elif CS.vEgo < min_speed_ms:
+      self.paused = True
+
+    return self.paused

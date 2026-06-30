@@ -6,14 +6,17 @@ See the LICENSE.md file in the root directory for more details.
 """
 from cereal import car
 
+from opendbc.car import structs
 from openpilot.common.params import Params
 
 # only relevant in a meaningful turn (not highway lane-keeping, where steering angle stays small)
 ENGAGE_ANGLE = 45.0     # deg
 # once engaged, hold until the wheel is back near center so we don't re-grab and steer back into the turn
 RELEASE_ANGLE = 20.0    # deg
-# driver torque (toward center) that counts as a deliberate request to bring the wheel back
-TORQUE_THRESHOLD = 40   # Steer_Torque_Sensor units; normal active lane-keeping stays under ~80
+# driver torque (toward center) that counts as a deliberate request to bring the wheel back. This is in
+# Subaru Steer_Torque_Sensor units (normal active lane-keeping stays under ~80) and is brand-specific,
+# so the assist is scoped to angle-LKAS Subaru below.
+TORQUE_THRESHOLD = 40
 
 
 class ReturnToCenterAssist:
@@ -23,10 +26,14 @@ class ReturnToCenterAssist:
 
   This addresses openpilot holding a turn the model still "wants": the camera's FOV is narrower than
   the driver's view, so on exit the desired angle lags and openpilot keeps commanding into the turn.
+
+  The torque threshold is in Subaru units, so this is limited to angle-LKAS Subaru.
   """
-  def __init__(self):
+  def __init__(self, CP: structs.CarParams):
     self.params = Params()
 
+    # driver torque units vary by brand; only enable where the threshold has been tuned
+    self.supported = CP.brand == "subaru" and CP.steerControlType == structs.CarParams.SteerControlType.angle
     self.enabled = self.params.get_bool("MadsReturnToCenterAssist")
     self.active = False
 
@@ -34,7 +41,7 @@ class ReturnToCenterAssist:
     self.enabled = self.params.get_bool("MadsReturnToCenterAssist")
 
   def update(self, CS: car.CarState) -> bool:
-    if not self.enabled:
+    if not (self.enabled and self.supported):
       self.active = False
       return False
 

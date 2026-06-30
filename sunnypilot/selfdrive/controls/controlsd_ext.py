@@ -22,7 +22,7 @@ class ControlsExt:
     self.params = params
     self.blinker_pause_lateral = BlinkerPauseLateral()
     self.min_lateral_engage_speed = MinLateralEngageSpeed()
-    self.return_to_center_assist = ReturnToCenterAssist()
+    self.return_to_center_assist = ReturnToCenterAssist(CP)
     self.param_store = ParamStore(self.CP)
     self.get_params_sp()
 
