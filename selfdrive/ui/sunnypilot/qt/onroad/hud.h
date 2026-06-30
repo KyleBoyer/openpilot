@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <QElapsedTimer>
+
 #include "selfdrive/ui/qt/onroad/hud.h"
 #include "selfdrive/ui/sunnypilot/qt/onroad/developer_ui/developer_ui.h"
 
@@ -25,6 +27,10 @@ private:
   int drawRightDevUIElement(QPainter &p, int x, int y, const QString &value, const QString &label, const QString &units, QColor &color);
   int drawBottomDevUIElement(QPainter &p, int x, int y, const QString &value, const QString &label, const QString &units, QColor &color);
   void drawBottomDevUI(QPainter &p, int x, int y);
+  void drawSpeedLimit(QPainter &p, const QRect &surface_rect);
+  void drawRoadName(QPainter &p, const QRect &surface_rect);
+  void drawStandstillTimer(QPainter &p, const QRect &surface_rect);
+  void drawGreenLight(QPainter &p, const QRect &surface_rect);
 
   bool lead_status;
   float lead_d_rel;
@@ -53,4 +59,17 @@ private:
   bool reversing;
   cereal::CarParams::SteerControlType steerControlType;
   cereal::CarControl::Actuators::Reader actuators;
+
+  // Road info
+  bool speed_limit_valid = false;
+  float speed_limit = 0.0f;
+  QString road_name;
+
+  // Standstill timer
+  bool at_standstill = false;
+  QElapsedTimer standstill_timer;
+
+  // Green light indicator
+  bool was_model_stopped = false;
+  bool green_light_go = false;
 };

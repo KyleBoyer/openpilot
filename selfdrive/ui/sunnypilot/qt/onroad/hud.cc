@@ -75,6 +75,30 @@ void HudRendererSP::updateState(const UIState &s) {
   latAccelFactorFiltered = ltp.getLatAccelFactorFiltered();
   frictionCoefficientFiltered = ltp.getFrictionCoefficientFiltered();
   liveValid = ltp.getLiveValid();
+
+  // liveMapDataSP — speed limit and road name
+  const auto map_data = sm["liveMapDataSP"].getLiveMapDataSP();
+  speed_limit_valid = map_data.getSpeedLimitValid();
+  speed_limit = map_data.getSpeedLimit() * (is_metric ? MS_TO_KPH : MS_TO_MPH);
+  road_name = QString(map_data.getRoadName().cStr());
+
+  // Standstill timer
+  bool is_standstill = car_state.getVEgo() < 0.3f;
+  if (is_standstill && !at_standstill) {
+    standstill_timer.start();
+  }
+  at_standstill = is_standstill;
+
+  // Green light indicator — model-driven: longitudinalPlan.shouldStop clears while at standstill
+  bool model_stop = sm["longitudinalPlan"].getLongitudinalPlan().getShouldStop();
+  if (is_standstill && model_stop) {
+    was_model_stopped = true;
+  }
+  green_light_go = is_standstill && was_model_stopped && !model_stop;
+  if (!is_standstill) {
+    was_model_stopped = false;
+    green_light_go = false;
+  }
 }
 
 void HudRendererSP::draw(QPainter &p, const QRect &surface_rect) {
@@ -93,6 +117,19 @@ void HudRendererSP::draw(QPainter &p, const QRect &surface_rect) {
     if (devUiInfo != 0) {
       QRect rect_right(surface_rect.right() - (UI_BORDER_SIZE * 2), UI_BORDER_SIZE * 1.5, 184, 170);
       drawRightDevUI(p, surface_rect.right() - 184 - UI_BORDER_SIZE * 2, UI_BORDER_SIZE * 2 + rect_right.height());
+    }
+
+    if (speed_limit_valid) {
+      drawSpeedLimit(p, surface_rect);
+    }
+    if (!road_name.isEmpty()) {
+      drawRoadName(p, surface_rect);
+    }
+    if (at_standstill) {
+      drawStandstillTimer(p, surface_rect);
+    }
+    if (green_light_go) {
+      drawGreenLight(p, surface_rect);
     }
   }
 }
@@ -205,4 +242,87 @@ void HudRendererSP::drawBottomDevUI(QPainter &p, int x, int y) {
 
   UiElement altitudeElement = DeveloperUi::getAltitude(gpsAccuracy, altitude);
   rw += drawBottomDevUIElement(p, rw, y, altitudeElement.value, altitudeElement.label, altitudeElement.units, altitudeElement.color);
+}
+
+void HudRendererSP::drawSpeedLimit(QPainter &p, const QRect &surface_rect) {
+  // International circular speed limit sign, positioned below the set-speed box (top-left)
+  const int cx = 160, cy = 310, r = 50;
+
+  p.save();
+  p.setPen(QPen(QColor(220, 0, 0), 10));
+  p.setBrush(QColor(255, 255, 255, 230));
+  p.drawEllipse(QPoint(cx, cy), r, r);
+
+  p.setFont(InterFont(46, QFont::Bold));
+  p.setPen(QColor(0, 0, 0));
+  p.drawText(QRect(cx - r, cy - r, r * 2, r * 2), Qt::AlignCenter,
+             QString::number(std::nearbyint(speed_limit)));
+  p.restore();
+}
+
+void HudRendererSP::drawRoadName(QPainter &p, const QRect &surface_rect) {
+  p.save();
+  p.setFont(InterFont(44, QFont::DemiBold));
+  QFontMetrics fm(p.font());
+  QRect text_rect = fm.boundingRect(road_name);
+
+  const int padding_h = 20, padding_v = 10;
+  const int cx = surface_rect.center().x();
+  const int cy = surface_rect.bottom() - 65;
+
+  QRect bg_rect(
+    cx - text_rect.width() / 2 - padding_h,
+    cy - text_rect.height() / 2 - padding_v,
+    text_rect.width() + padding_h * 2,
+    text_rect.height() + padding_v * 2
+  );
+
+  p.setPen(Qt::NoPen);
+  p.setBrush(QColor(0, 0, 0, 150));
+  p.drawRoundedRect(bg_rect, 12, 12);
+
+  p.setPen(Qt::white);
+  p.drawText(bg_rect, Qt::AlignCenter, road_name);
+  p.restore();
+}
+
+void HudRendererSP::drawStandstillTimer(QPainter &p, const QRect &surface_rect) {
+  qint64 elapsed_ms = standstill_timer.isValid() ? standstill_timer.elapsed() : 0;
+  int total_s = elapsed_ms / 1000;
+  QString timer_str = QString("%1:%2")
+    .arg(total_s / 60)
+    .arg(total_s % 60, 2, 10, QChar('0'));
+
+  p.save();
+  p.setFont(InterFont(60, QFont::Bold));
+  drawText(p, surface_rect.center().x(), 360, timer_str, QColor(0xff, 0xff, 0xff, 230));
+  p.restore();
+}
+
+void HudRendererSP::drawGreenLight(QPainter &p, const QRect &surface_rect) {
+  // Green circle with upward arrow, centered horizontally just below the current speed
+  const int cx = surface_rect.center().x();
+  const int cy = 410;
+  const int r = 44;
+
+  p.save();
+
+  // Outer dark ring for contrast
+  p.setPen(QPen(QColor(0, 0, 0, 180), 6));
+  p.setBrush(QColor(0, 200, 80, 230));
+  p.drawEllipse(QPoint(cx, cy), r, r);
+
+  // Upward arrow
+  p.setPen(Qt::NoPen);
+  p.setBrush(Qt::white);
+  const int aw = 14, ah = 26, tip = cy - r / 2;
+  QPolygon arrow;
+  arrow << QPoint(cx, tip - 12)           // tip
+        << QPoint(cx + aw, tip + ah - 12) // lower-right
+        << QPoint(cx - aw, tip + ah - 12); // lower-left
+  p.drawPolygon(arrow);
+  // Arrow stem
+  p.drawRect(cx - aw / 2, tip + ah - 12, aw, 14);
+
+  p.restore();
 }
