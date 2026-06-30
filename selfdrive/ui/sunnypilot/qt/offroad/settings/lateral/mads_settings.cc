@@ -41,6 +41,10 @@ MadsSettings::MadsSettings(QWidget *parent) : QWidget(parent) {
   QObject::connect(madsMinLateralControlSpeed, &OptionControlSP::updateLabels, this, &MadsSettings::refreshMinLateralControlSpeed);
   list->addItem(madsMinLateralControlSpeed);
 
+  // Return-to-center assist
+  madsReturnToCenterToggle = new ParamControl("MadsReturnToCenterAssist", tr("Return-to-Center Assist"), MADS_RETURN_TO_CENTER_DESC, "");
+  list->addItem(madsReturnToCenterToggle);
+
   QObject::connect(uiState(), &UIState::offroadTransition, this, &MadsSettings::updateToggles);
 
   main_layout->addWidget(new ScrollViewSP(list, this));

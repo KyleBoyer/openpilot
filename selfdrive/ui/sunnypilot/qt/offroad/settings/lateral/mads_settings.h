@@ -50,8 +50,10 @@ private:
   ParamControl *madsUnifiedEngagementModeToggle;
   ButtonParamControl *madsSteeringMode;
   OptionControlSP *madsMinLateralControlSpeed;
+  ParamControl *madsReturnToCenterToggle;
 
   const QString MADS_MIN_LATERAL_SPEED_DESC = tr("Pause lateral control below this speed so you can move the steering wheel freely at low speed or a stop without fighting steering. Lateral resumes above this speed. Set to 0 to keep lateral always available.");
+  const QString MADS_RETURN_TO_CENTER_DESC = tr("When steering out of a turn, briefly hand control back so the wheel returns to center naturally instead of fighting steering. Lateral resumes once the wheel is back near center.");
 
   std::vector<int> madsSteeringModeValues = {};
 

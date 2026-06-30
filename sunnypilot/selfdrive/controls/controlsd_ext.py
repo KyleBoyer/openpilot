@@ -13,6 +13,7 @@ from openpilot.common.swaglog import cloudlog
 from openpilot.sunnypilot.selfdrive.controls.lib.param_store import ParamStore
 from openpilot.sunnypilot.selfdrive.controls.lib.blinker_pause_lateral import BlinkerPauseLateral
 from openpilot.sunnypilot.selfdrive.controls.lib.min_lateral_engage_speed import MinLateralEngageSpeed
+from openpilot.sunnypilot.selfdrive.controls.lib.return_to_center_assist import ReturnToCenterAssist
 
 
 class ControlsExt:
@@ -21,6 +22,7 @@ class ControlsExt:
     self.params = params
     self.blinker_pause_lateral = BlinkerPauseLateral()
     self.min_lateral_engage_speed = MinLateralEngageSpeed()
+    self.return_to_center_assist = ReturnToCenterAssist()
     self.param_store = ParamStore(self.CP)
     self.get_params_sp()
 
@@ -35,6 +37,7 @@ class ControlsExt:
     self.param_store.update(self.params)
     self.blinker_pause_lateral.get_params()
     self.min_lateral_engage_speed.get_params()
+    self.return_to_center_assist.get_params()
 
   def get_lat_active(self, sm: messaging.SubMaster) -> bool:
     if self.blinker_pause_lateral.update(sm['carState']):
@@ -42,6 +45,10 @@ class ControlsExt:
 
     # pause lateral below the user-set minimum engagement speed (straighten the wheel at a stop)
     if self.min_lateral_engage_speed.update(sm['carState']):
+      return False
+
+    # yield to the driver steering out of a turn so the wheel returns naturally instead of fighting
+    if self.return_to_center_assist.update(sm['carState']):
       return False
 
     ss_sp = sm['selfdriveStateSP']
