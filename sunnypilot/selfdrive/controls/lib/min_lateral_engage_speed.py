@@ -21,7 +21,7 @@ class MinLateralEngageSpeed:
   The stored MadsMinLateralControlSpeed is in the user's display unit (mph or km/h, per IsMetric),
   matching BlinkerMinLateralControlSpeed.
   """
-  def __init__(self):
+  def __init__(self) -> None:
     self.params = Params()
 
     self.is_metric = self.params.get_bool("IsMetric")

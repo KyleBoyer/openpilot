@@ -20,7 +20,7 @@ TORQUE_THRESHOLD = 40
 
 
 class ReturnToCenterAssist:
-  """Lets the driver steer out of a turn naturally without fighting MADS. When the wheel is turned
+  """Allows the driver to steer out of a turn naturally without fighting MADS. When the wheel is turned
   and the driver applies steering torque toward center, lateral yields (MADS stays armed) so the
   driver and steering geometry bring the wheel back; lateral resumes once it is near center.
 

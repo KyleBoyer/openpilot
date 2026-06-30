@@ -77,10 +77,16 @@ void HudRendererSP::updateState(const UIState &s) {
   liveValid = ltp.getLiveValid();
 
   // liveMapDataSP — speed limit and road name
-  const auto map_data = sm["liveMapDataSP"].getLiveMapDataSP();
-  speed_limit_valid = map_data.getSpeedLimitValid();
-  speed_limit = map_data.getSpeedLimit() * (is_metric ? MS_TO_KPH : MS_TO_MPH);
-  road_name = QString(map_data.getRoadName().cStr());
+  if (sm.alive("liveMapDataSP") && sm.valid("liveMapDataSP")) {
+    const auto map_data = sm["liveMapDataSP"].getLiveMapDataSP();
+    speed_limit_valid = map_data.getSpeedLimitValid();
+    speed_limit = map_data.getSpeedLimit() * (is_metric ? MS_TO_KPH : MS_TO_MPH);
+    road_name = QString(map_data.getRoadName().cStr());
+  } else {
+    speed_limit_valid = false;
+    speed_limit = 0.0f;
+    road_name.clear();
+  }
 
   // Standstill timer
   bool is_standstill = car_state.getVEgo() < 0.3f;
