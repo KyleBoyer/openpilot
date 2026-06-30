@@ -17,6 +17,12 @@ RELEASE_ANGLE = 20.0    # deg
 # Subaru Steer_Torque_Sensor units (normal active lane-keeping stays under ~80) and is brand-specific,
 # so the assist is scoped to angle-LKAS Subaru below.
 TORQUE_THRESHOLD = 40
+# the wheel must have come down at least this far off its peak before a centering torque is trusted as
+# an actual return-to-center request. Without this, a momentary opposing-torque sample during turn-in
+# (grip correction, two-handed shift, sensor transient) can cross TORQUE_THRESHOLD right as the angle
+# crosses ENGAGE_ANGLE while the driver is still actively turning further in - logs from real drives
+# showed this firing while the angle was still rising 30-84 deg/s, well before the driver eased out.
+CREST_MARGIN = 5.0      # deg
 
 
 class ReturnToCenterAssist:
@@ -36,6 +42,7 @@ class ReturnToCenterAssist:
     self.supported = CP.brand == "subaru" and CP.steerControlType == structs.CarParams.SteerControlType.angle
     self.enabled = self.params.get_bool("MadsReturnToCenterAssist")
     self.active = False
+    self.peak_angle = 0.0  # largest |angle| seen since the wheel last entered the engage zone
 
   def get_params(self) -> None:
     self.enabled = self.params.get_bool("MadsReturnToCenterAssist")
@@ -43,6 +50,7 @@ class ReturnToCenterAssist:
   def update(self, CS: car.CarState) -> bool:
     if not (self.enabled and self.supported):
       self.active = False
+      self.peak_angle = 0.0
       return False
 
     angle = CS.steeringAngleDeg
@@ -50,10 +58,16 @@ class ReturnToCenterAssist:
       # hold the yield until the wheel is back near center
       if abs(angle) < RELEASE_ANGLE:
         self.active = False
+    elif abs(angle) <= ENGAGE_ANGLE:
+      self.peak_angle = 0.0
     else:
-      # engage when meaningfully turned and the driver is steering toward center (opposing the angle)
+      self.peak_angle = max(self.peak_angle, abs(angle))
+      # engage when the driver is steering toward center (opposing the angle) AND the wheel has
+      # actually crested off its peak - filters out a momentary opposing-torque sample while still
+      # turning further in (see CREST_MARGIN above)
       driver_returning = (CS.steeringTorque * angle < 0) and (abs(CS.steeringTorque) > TORQUE_THRESHOLD)
-      if abs(angle) > ENGAGE_ANGLE and driver_returning:
+      cresting = abs(angle) < self.peak_angle - CREST_MARGIN
+      if driver_returning and cresting:
         self.active = True
 
     return self.active
