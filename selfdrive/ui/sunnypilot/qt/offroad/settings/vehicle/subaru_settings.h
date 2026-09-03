@@ -22,5 +22,10 @@ public:
   void updateSettings() override;
 
 private:
-  bool offroad = false;
+  ParamControl *experimentalAutoParkingBrakeToggle;
+
+  const QString EXPERIMENTAL_AUTO_PARKING_BRAKE_DESC = tr(
+    "2023-24 Ascent only. When the vehicle is stopped with the brake pedal pressed, this sends an unverified EyeSight CAN request after shifting from Drive or Reverse into Park. "
+    "The Cruise_EPB signal has not been confirmed to command the parking brake. It may do nothing or cause unexpected vehicle behavior. Verify that the parking brake actually engaged before releasing the brake pedal."
+  );
 };

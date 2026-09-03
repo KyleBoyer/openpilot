@@ -200,6 +200,7 @@ struct CarControlSP @0xa5cd762cd951a455 {
   leadOne @2 :LeadData;
   leadTwo @3 :LeadData;
   subaruDirectionalSteerOverride @4 :Bool;
+  subaruExperimentalAutoParkingBrake @5 :Bool;
 
   struct Param {
     key @0 :Text;

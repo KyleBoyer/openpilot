@@ -170,6 +170,9 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"MadsSubaruDirectionalOverride", {PERSISTENT | BACKUP, BOOL, "1"}},
     {"MadsUnifiedEngagementMode", {PERSISTENT | BACKUP, BOOL, "1"}},
 
+    // Subaru experimental features
+    {"SubaruExperimentalAutoParkingBrake", {PERSISTENT | BACKUP, BOOL, "0"}},
+
     // Model Manager params
     {"ModelManager_ActiveBundle", {PERSISTENT, JSON}},
     {"ModelManager_ClearCache", {CLEAR_ON_MANAGER_START, BOOL}},
