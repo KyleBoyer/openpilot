@@ -7,6 +7,9 @@
 
 #include "selfdrive/ui/sunnypilot/qt/offroad/settings/vehicle/subaru_settings.h"
 
+#include <QJsonDocument>
+#include <QJsonObject>
+
 SubaruSettings::SubaruSettings(QWidget *parent) : BrandSettingsInterface(parent) {
   experimentalAutoParkingBrakeToggle = new ParamControl(
     "SubaruExperimentalAutoParkingBrake",
@@ -21,12 +24,23 @@ SubaruSettings::SubaruSettings(QWidget *parent) : BrandSettingsInterface(parent)
 
 void SubaruSettings::updateSettings() {
   bool supported = false;
-  auto cp_bytes = params.get("CarParamsPersistent");
-  if (!cp_bytes.empty()) {
-    AlignedBuffer aligned_buf;
-    capnp::FlatArrayMessageReader cmsg(aligned_buf.align(cp_bytes.data(), cp_bytes.size()));
-    cereal::CarParams::Reader CP = cmsg.getRoot<cereal::CarParams>();
-    supported = CP.getCarFingerprint() == "SUBARU ASCENT 2023";
+
+  // A manual vehicle selection takes precedence over the last automatically fingerprinted car.
+  // CarPlatformBundle stores the enum name with underscores, while CarParams stores its value.
+  QString platform_bundle = QString::fromStdString(params.get("CarPlatformBundle"));
+  if (!platform_bundle.isEmpty()) {
+    QJsonDocument json = QJsonDocument::fromJson(platform_bundle.toUtf8());
+    if (json.isObject()) {
+      supported = json.object().value("platform").toString() == "SUBARU_ASCENT_2023";
+    }
+  } else {
+    auto cp_bytes = params.get("CarParamsPersistent");
+    if (!cp_bytes.empty()) {
+      AlignedBuffer aligned_buf;
+      capnp::FlatArrayMessageReader cmsg(aligned_buf.align(cp_bytes.data(), cp_bytes.size()));
+      cereal::CarParams::Reader CP = cmsg.getRoot<cereal::CarParams>();
+      supported = CP.getCarFingerprint() == "SUBARU ASCENT 2023";
+    }
   }
 
   experimentalAutoParkingBrakeToggle->setEnabled(offroad && supported);
