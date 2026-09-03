@@ -8,14 +8,19 @@ See the LICENSE.md file in the root directory for more details.
 import pytest
 from pytest_mock import MockerFixture
 
-from cereal import custom
+from cereal import custom, log
+from opendbc.car import structs
 from openpilot.common.realtime import DT_CTRL
+from openpilot.sunnypilot.mads.mads import ModularAssistiveDrivingSystem
 from openpilot.sunnypilot.mads.state import StateMachine, SOFT_DISABLE_TIME
+from openpilot.selfdrive.car.car_specific import CarSpecificEvents
 from openpilot.selfdrive.selfdrived.events import ET, NormalPermanentAlert, Events
 from openpilot.sunnypilot.selfdrive.selfdrived.events import EventsSP, EVENTS_SP
 
 State = custom.ModularAssistiveDrivingSystem.ModularAssistiveDrivingSystemState
+EventName = log.OnroadEvent.EventName
 EventNameSP = custom.OnroadEventSP.EventName
+GearShifter = structs.CarState.GearShifter
 
 # The event types that maintain the current state
 MAINTAIN_STATES = {State.enabled: (None,), State.disabled: (None,), State.softDisabling: (ET.SOFT_DISABLE,),
@@ -142,3 +147,40 @@ class TestMADSStateMachine:
         self.state_machine.update()
         assert self.state_machine.state == state
         self.clear_events()
+
+
+class TestMADSManumaticGear:
+  @staticmethod
+  def build_mads(brand):
+    mads = ModularAssistiveDrivingSystem.__new__(ModularAssistiveDrivingSystem)
+    mads.CP = structs.CarParams(brand=brand)
+    mads.events = Events()
+    mads.events.add(EventName.wrongGear)
+    return mads
+
+  def test_subaru_manumatic_allows_lateral(self):
+    mads = self.build_mads("subaru")
+    CS = structs.CarState(gearShifter=GearShifter.manumatic)
+
+    mads.allow_subaru_manumatic_lateral(CS)
+
+    assert not mads.events.has(EventName.wrongGear)
+
+  def test_subaru_manumatic_still_blocks_standard_engagement(self):
+    CP = structs.CarParams(brand="subaru")
+    CS = structs.CarState(gearShifter=GearShifter.manumatic)
+    events = CarSpecificEvents(CP).update(CS, structs.CarState(), structs.CarControl())
+
+    assert events.has(EventName.wrongGear)
+
+  @pytest.mark.parametrize(("brand", "gear"), (
+    ("subaru", GearShifter.drive),
+    ("toyota", GearShifter.manumatic),
+  ))
+  def test_other_gear_or_brand_keeps_wrong_gear(self, brand, gear):
+    mads = self.build_mads(brand)
+    CS = structs.CarState(gearShifter=gear)
+
+    mads.allow_subaru_manumatic_lateral(CS)
+
+    assert mads.events.has(EventName.wrongGear)

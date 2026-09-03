@@ -97,6 +97,13 @@ class ModularAssistiveDrivingSystem:
     if self.state_machine.state != State.paused:
       self.events_sp.add(EventNameSP.silentLkasDisable)
 
+  def allow_subaru_manumatic_lateral(self, CS: structs.CarState) -> None:
+    # selfdrive's longitudinal state machine has already consumed this cycle's
+    # events before MADS runs. Remove wrongGear only from MADS' lateral path so
+    # manual ratio selection behaves like Drive for LKAS, but not for cruise.
+    if self.CP.brand == "subaru" and CS.gearShifter == GearShifter.manumatic:
+      self.events.remove(EventName.wrongGear)
+
   def replace_event(self, old_event: int, new_event: int):
     self.events.remove(old_event)
     self.events_sp.add(new_event)
@@ -111,6 +118,8 @@ class ModularAssistiveDrivingSystem:
       self.lateral_mismatch_counter += 1
 
   def update_events(self, CS: structs.CarState):
+    self.allow_subaru_manumatic_lateral(CS)
+
     if not self.selfdrive.enabled and self.enabled:
       if self.events.has(EventName.doorOpen):
         self.replace_event(EventName.doorOpen, EventNameSP.silentDoorOpen)
