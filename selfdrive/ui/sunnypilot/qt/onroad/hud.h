@@ -31,6 +31,7 @@ private:
   void drawRoadName(QPainter &p, const QRect &surface_rect);
   void drawStandstillTimer(QPainter &p, const QRect &surface_rect);
   void drawGreenLight(QPainter &p, const QRect &surface_rect);
+  void drawExperimentalParkingBrake(QPainter &p, const QRect &surface_rect);
 
   bool lead_status;
   float lead_d_rel;
@@ -72,4 +73,10 @@ private:
   // Green light indicator
   bool was_model_stopped = false;
   bool green_light_go = false;
+
+  // Experimental Subaru parking-brake indicators
+  bool parking_brake_indicators_visible = false;
+  bool parking_brake_engaged = false;
+  bool parking_brake_requesting = false;
+  bool driver_on_right = false;
 };

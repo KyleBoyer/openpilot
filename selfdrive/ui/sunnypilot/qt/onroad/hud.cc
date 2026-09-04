@@ -7,6 +7,9 @@
 
 #include "selfdrive/ui/sunnypilot/qt/onroad/hud.h"
 
+#include <cmath>
+
+#include "selfdrive/ui/qt/onroad/buttons.h"
 #include "selfdrive/ui/qt/util.h"
 
 
@@ -25,6 +28,13 @@ void HudRendererSP::updateState(const UIState &s) {
   const auto gpsLocation = is_gps_location_external ? sm["gpsLocationExternal"].getGpsLocationExternal() : sm["gpsLocation"].getGpsLocation();
   const auto ltp = sm["liveTorqueParameters"].getLiveTorqueParameters();
   const auto car_params = sm["carParams"].getCarParams();
+
+  parking_brake_indicators_visible = car_params.getCarFingerprint() == "SUBARU ASCENT 2023" &&
+                                     sm["carControlSP"].getCarControlSP().getSubaruExperimentalAutoParkingBrake();
+  const auto car_state_sp = sm["carStateSP"].getCarStateSP();
+  parking_brake_engaged = car_state_sp.getSubaruParkingBrakeReported();
+  parking_brake_requesting = car_state_sp.getSubaruExperimentalParkingBrakeRequesting();
+  driver_on_right = sm["driverMonitoringState"].getDriverMonitoringState().getIsRHD();
 
   static int reverse_delay = 0;
   bool reverse_allowed = false;
@@ -136,6 +146,9 @@ void HudRendererSP::draw(QPainter &p, const QRect &surface_rect) {
     }
     if (green_light_go) {
       drawGreenLight(p, surface_rect);
+    }
+    if (parking_brake_indicators_visible) {
+      drawExperimentalParkingBrake(p, surface_rect);
     }
   }
 }
@@ -330,5 +343,49 @@ void HudRendererSP::drawGreenLight(QPainter &p, const QRect &surface_rect) {
   // Arrow stem
   p.drawRect(cx - aw / 2, tip + ah - 12, aw, 14);
 
+  p.restore();
+}
+
+void HudRendererSP::drawExperimentalParkingBrake(QPainter &p, const QRect &surface_rect) {
+  constexpr int radius = 42;
+  constexpr int gap = 18;
+  const int face_offset = UI_BORDER_SIZE + btn_size / 2;
+  int y = surface_rect.bottom() - face_offset;
+  y -= devUiInfo > 1 ? 50 : 0;
+
+  const int first_x = UI_BORDER_SIZE + btn_size + gap + radius;
+  const int second_x = first_x + radius * 2 + gap;
+  const int status_x = driver_on_right ? surface_rect.right() - first_x : first_x;
+  const int request_x = driver_on_right ? surface_rect.right() - second_x : second_x;
+
+  auto draw_indicator = [&](int x, const QString &symbol, const QString &label, bool active, QColor active_color) {
+    const QColor inactive_color(170, 170, 170, 180);
+    QColor color = active ? active_color : inactive_color;
+    QColor background(0, 0, 0, active ? 180 : 110);
+
+    p.setPen(QPen(color, 6));
+    p.setBrush(background);
+    p.drawEllipse(QPoint(x, y), radius, radius);
+
+    p.setFont(InterFont(symbol == "TX" ? 30 : 46, QFont::Bold));
+    p.setPen(active ? Qt::white : QColor(210, 210, 210, 190));
+    p.drawText(QRect(x - radius, y - radius, radius * 2, radius * 2), Qt::AlignCenter, symbol);
+
+    p.setFont(InterFont(20, QFont::DemiBold));
+    p.setPen(color);
+    p.drawText(QRect(x - 60, y + radius + 4, 120, 28), Qt::AlignHCenter | Qt::AlignTop, label);
+  };
+
+  p.save();
+  draw_indicator(status_x, "P", tr("EPB"), parking_brake_engaged, QColor(0, 220, 90, 245));
+
+  QColor request_color(255, 166, 0);
+  if (parking_brake_requesting) {
+    const double pulse = 0.65 + 0.35 * ((std::sin(millis_since_boot() / 90.0) + 1.0) / 2.0);
+    request_color.setAlphaF(pulse);
+  } else {
+    request_color.setAlpha(180);
+  }
+  draw_indicator(request_x, "TX", tr("REQUEST"), parking_brake_requesting, request_color);
   p.restore();
 }

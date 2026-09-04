@@ -198,6 +198,8 @@ class Car:
 
     # Update carState from CAN
     CS, CS_SP = self.CI.update(can_list)
+    if self.CI.CC is not None:
+      CS_SP.subaruExperimentalParkingBrakeRequesting = self.CI.CC.experimental_parking_brake_requesting
     CS_SP = convert_to_capnp(CS_SP)
     if self.CP.brand == 'mock':
       CS, CS_SP = self.mock_carstate.update(CS, CS_SP)

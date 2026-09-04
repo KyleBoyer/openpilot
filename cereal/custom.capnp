@@ -264,6 +264,8 @@ struct BackupManagerSP @0xf98d843bfd7004a3 {
 }
 
 struct CarStateSP @0xb86e6369214c01c8 {
+  subaruParkingBrakeReported @0 :Bool;
+  subaruExperimentalParkingBrakeRequesting @1 :Bool;
 }
 
 struct LiveMapDataSP @0xf416ec09499d9d19 {
