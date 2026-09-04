@@ -29,7 +29,7 @@ void HudRendererSP::updateState(const UIState &s) {
   const auto ltp = sm["liveTorqueParameters"].getLiveTorqueParameters();
   const auto car_params = sm["carParams"].getCarParams();
 
-  parking_brake_indicators_visible = car_params.getCarFingerprint() == "SUBARU ASCENT 2023" &&
+  parking_brake_indicators_visible = car_params.getCarFingerprint() == "SUBARU_ASCENT_2023" &&
                                      sm["carControlSP"].getCarControlSP().getSubaruExperimentalAutoParkingBrake();
   const auto car_state_sp = sm["carStateSP"].getCarStateSP();
   parking_brake_engaged = car_state_sp.getSubaruParkingBrakeReported();
